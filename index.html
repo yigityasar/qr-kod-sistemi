@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Kod Üretici</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 500px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 30px 25px 20px 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            color: #444;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #bbb;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+        button {
+            margin-top: 18px;
+            width: 100%;
+            padding: 12px;
+            background: #0078d7;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #005fa3;
+        }
+        .qr-list {
+            margin-top: 35px;
+        }
+        .qr-item {
+            display: flex;
+            align-items: center;
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 12px 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .qr-img {
+            width: 80px;
+            height: 80px;
+            margin-right: 18px;
+            border-radius: 4px;
+            background: #fff;
+            border: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .qr-info {
+            flex: 1;
+        }
+        .qr-name {
+            font-weight: bold;
+            color: #222;
+        }
+        .qr-date {
+            color: #888;
+            font-size: 0.95em;
+            margin-top: 2px;
+        }
+        .qr-link {
+            color: #0078d7;
+            text-decoration: underline;
+            font-size: 0.97em;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>QR Kod Üretici</h1>
+        <form id="qrForm">
+            <label for="qrLink">Link</label>
+            <input type="text" id="qrLink" placeholder="Bir link girin..." required>
+            <label for="qrName">Özel İsim</label>
+            <input type="text" id="qrName" placeholder="QR kod için özel bir isim..." required>
+            <button type="submit">QR Kod Oluştur</button>
+        </form>
+        <div class="qr-list" id="qrList">
+            <!-- QR kodları burada listelenecek -->
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+    <script>
+        const qrForm = document.getElementById('qrForm');
+        const qrList = document.getElementById('qrList');
+        const STORAGE_KEY = 'qrKodlar';
+
+        function formatDate(date) {
+            if (typeof date === 'string') date = new Date(date);
+            return date.toLocaleString('tr-TR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+            });
+        }
+
+        function addQRItem(link, name, dateStr, imgDataUrl) {
+            const qrItem = document.createElement('div');
+            qrItem.className = 'qr-item';
+            qrItem.innerHTML = `
+                <div class="qr-img"><img src="${imgDataUrl}" width="80" height="80" alt="QR"></div>
+                <div class="qr-info">
+                    <div class="qr-name">${name}</div>
+                    <div class="qr-date">${dateStr}</div>
+                    <a class="qr-link" href="${link}" target="_blank">${link}</a>
+                </div>
+            `;
+            qrList.prepend(qrItem);
+        }
+
+        function saveQRToStorage(qrObj) {
+            const qrArr = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            qrArr.unshift(qrObj); // en başa ekle
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(qrArr));
+        }
+
+        function loadQRsFromStorage() {
+            const qrArr = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            qrArr.forEach(qr => {
+                addQRItem(qr.link, qr.name, formatDate(qr.date), qr.imgDataUrl);
+            });
+        }
+
+        qrForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const link = document.getElementById('qrLink').value.trim();
+            const name = document.getElementById('qrName').value.trim();
+            if (!link || !name) return;
+            const now = new Date();
+            const dateStr = formatDate(now);
+            // QR kodu oluştur
+            const qr = new QRious({
+                value: link,
+                size: 80
+            });
+            const imgDataUrl = qr.toDataURL();
+            addQRItem(link, name, dateStr, imgDataUrl);
+            saveQRToStorage({ link, name, date: now, imgDataUrl });
+            qrForm.reset();
+        });
+
+        // Sayfa yüklenince kayıtlı QR'ları göster
+        loadQRsFromStorage();
+    </script>
+</body>
+</html> 
